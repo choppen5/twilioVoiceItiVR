@@ -1,0 +1,12 @@
+{
+	"name" :  "voice_bioauthentication_ivr",
+	"description" : "Using the VoiceIT API with Twilio",
+	"author" : "Charles Oppenheimer <charles@twilio.com",
+"dependencies": {
+        "twilio": "latest",
+        "express": "latest",
+        "ejs"  :  "latest",
+        "request" : "latest",
+        "crypto-js" : "latest"
+    }
+  }
