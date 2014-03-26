@@ -4,13 +4,13 @@ var twilio = require('twilio'),
     SHA256 = require("crypto-js/sha256");
 
 
-
+var port = process.env.PORT || 8080;
 var app = express();
 app.use(express.bodyParser());  //must have this to parse body of requests
 
 //password
 // need to set environment variables VOICEIT_DEV_ID and VOICEIT_DEV_ID
-console.log("password = " + process.env.VOICEIT_DEV_ID + " vstDev id= " +  process.env.VOICEIT_DEV_ID);
+console.log("password = " + process.env.VOICEIT_PASSWORD + " vstDev id= " +  process.env.VOICEIT_DEV_ID);
 
 
 
@@ -294,6 +294,6 @@ function callback(error, response, body) {
 	
 
 
-app.listen(1337);
-console.log('Visit http://localhost:1337/ to accept inbound calls!');
+app.listen(port);
+console.log('Up and running for bioauthentication on port ' + port);
 
