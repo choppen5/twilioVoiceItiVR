@@ -63,6 +63,7 @@ app.post('/incomming_call', function(req, res) {
 		        resp.gather({action: "/enroll_or_authenticate", numDigits: "1", timeout: 3}, function () {
 		        	this.say("Press 1 to enroll, or wait to log in.");
 		        });
+		        resp.redirect("/enroll_or_authenticate?Digits=TIMEOUT");
 
 		        console.log(resp.toString());
   	  			res.send(resp.toString());
