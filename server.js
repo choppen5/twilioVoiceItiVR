@@ -122,7 +122,7 @@ app.post('/enroll', function(req, res) {
 	resp.say("Say the following phrase, and then press the # key after recording..")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
-	resp.record({action: "/process_enroll", trim: "do-not-trim"});
+	resp.record({action: "/process_enroll", trim: "do-not-trim", maxLength: "5"});
 	
 	console.log(resp.toString());
 	res.send(resp.toString());
@@ -136,7 +136,7 @@ app.post('/authenticate', function(req, res) {
 	resp.say("Please say the following phrase to authenticate. Press the pound key when finished saying the phrase.")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
-	resp.record({action: "/process_authentication", trim: "do-not-trim"});
+	resp.record({action: "/process_authentication", trim: "do-not-trim", maxLength: "5"});
 
 		        //send a twilio response
 	console.log(resp.toString());
