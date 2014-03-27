@@ -61,7 +61,7 @@ app.post('/incomming_call', function(req, res) {
 		        
 		        resp.say("You have called Voice Authentication. Your phone number has been recognized.");
 		        resp.gather({action: "/enroll_or_authenticate", numDigits: "1", timeout: 3}, function () {
-		        	this.say("To login, wait. Or Press 1 to enroll.");
+		        	this.say("You can now log in.  Or press 1 now to enroll for the first time.");
 		        });
 		        resp.redirect("/enroll_or_authenticate?Digits=TIMEOUT");
 
@@ -133,7 +133,7 @@ app.post('/enroll', function(req, res) {
 app.post('/authenticate', function(req, res) { 
 
 	resp = new twilio.TwimlResponse(); 
-	resp.say("Please say the following phrase to authenticate. Press the pound key when finished saying the phrase.")
+	resp.say("Please say the following phrase to authenticate. ")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
 	resp.record({action: "/process_authentication", trim: "do-not-trim", maxLength: "5"});
