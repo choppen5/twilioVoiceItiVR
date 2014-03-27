@@ -119,7 +119,7 @@ app.post('/enroll', function(req, res) {
 
 	//check state.. how many times has this guy unrolled?
 	resp = new twilio.TwimlResponse(); 
-	resp.say("Say the following phrase, and then press the # key after recording..")
+	resp.say("Say the following phrase.")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
 	resp.record({action: "/process_enroll", trim: "do-not-trim", maxLength: "5"});
