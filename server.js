@@ -60,8 +60,8 @@ app.post('/incomming_call', function(req, res) {
 
 		        
 		        resp.say("You have called Voice Authentication. Your phone number has been recognized.");
-		        resp.gather({action: "/enroll_or_authenticate", numDigits: "1"}, function () {
-		        	this.say("Press 1 to log in with your voice. Press 2 if you need to enroll.");
+		        resp.gather({action: "/enroll_or_authenticate", numDigits: "1", timeout: 3}, function () {
+		        	this.say("Press 1 to enroll, or wait to log in.");
 		        });
 
 		        console.log(resp.toString());
@@ -91,7 +91,7 @@ app.post('/incomming_call', function(req, res) {
 						request.post(createUserOptions, callback); //not currently checking results of createUserOptions
 						// if we have successully created a user, we should... <play> "we are enrolling you in the system, with an action URL = enrollment"
 						resp.say("Welcome to the Voice Authentication system.  You are a new user, you will now be enrolled");
-						resp.redirect({Digits: "2"}, "/enroll");
+						resp.redirect({Digits: "1"}, "/enroll");
 		        		console.log(resp.toString());
   	  					res.send(resp.toString());
 
@@ -104,10 +104,10 @@ app.post('/enroll_or_authenticate', function(req, res) {
 	digits = req.body.Digits;
 	resp = new twilio.TwimlResponse(); 
 	if (digits == 1) {
-		resp.redirect("/authenticate");
-	} else {
-		esp.say("You have choosen to create a new account with your voice.  You will be asked to say a phrase 3 times.  Then you will be able to log in with that phrase.");
+		resp.say("You have choosen to create a new account with your voice.  You will be asked to say a phrase 3 times.  Then you will be able to log in with that phrase.");
 		resp.redirect("/enroll");
+	} else {
+		resp.redirect("/authenticate");
 	}
 	console.log(resp.toString());
   	res.send(resp.toString());
@@ -246,7 +246,7 @@ app.post('/process_authentication', function(req, res) {
 	        	resp.say("Your authentication did not pass. Please try again..");
 				resp.redirect("/authenticate");
 	        } else {
-	        	resp.say("Great Success!  Thank you, you are now authenticated.  I am but a lowly robot, and I recognized your voice.  This is the end of the demo.");
+	        	resp.say("Great Success!  I'm a lowly robot, and I recognized your voice. Thank you, you are now authenticated.   This is the end of the demo.");
 	        }
 	        //parse the body.result.. 
 	        console.log(info);
