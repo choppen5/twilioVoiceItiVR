@@ -88,9 +88,8 @@ app.post('/incomming_call', function(req, res) {
 						};
 						console.dir(createUserOptions);
 						console.log("Creating a createUser request")
-						request.post(createUserOptions, callback);
+						request.post(createUserOptions, callback); //not currently checking results of createUserOptions
 						// if we have successully created a user, we should... <play> "we are enrolling you in the system, with an action URL = enrollment"
-\
 						resp.say("Welcome to the Voice Authentication system.  You are a new user, you will now be enrolled");
 						resp.redirect({Digits: "2"}, "/enroll");
 		        		console.log(resp.toString());
