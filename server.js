@@ -61,7 +61,7 @@ app.post('/incomming_call', function(req, res) {
 		        
 		        resp.say("You have called Voice Authentication. Your phone number has been recognized.");
 		        resp.gather({action: "/enroll_or_authenticate", numDigits: "1", timeout: 3}, function () {
-		        	this.say("Press 1 to enroll, or wait to log in.");
+		        	this.say("To login, wait. Or Press 1 to enroll.");
 		        });
 		        resp.redirect("/enroll_or_authenticate?Digits=TIMEOUT");
 
