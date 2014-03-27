@@ -64,17 +64,8 @@ app.post('/incomming_call', function(req, res) {
 		        	this.say("Press 1 to log in with your voice. Press 2 if you need to enroll.");
 		        });
 
-		        
-		        
-
-		        //send a twilio response
-		        // check wethere 
-
 		        console.log(resp.toString());
   	  			res.send(resp.toString());
-
-		        // we should redirect to /Authenticate
-		        // this is where we call authenticate code, because the user exists
 
 		    } else {
 		    	console.log("terrible error!");
@@ -99,8 +90,7 @@ app.post('/incomming_call', function(req, res) {
 						console.log("Creating a createUser request")
 						request.post(createUserOptions, callback);
 						// if we have successully created a user, we should... <play> "we are enrolling you in the system, with an action URL = enrollment"
-						//send a twilio response
-						
+\
 						resp.say("Welcome to the Voice Authentication system.  You are a new user, you will now be enrolled");
 						resp.redirect({Digits: "2"}, "/enroll");
 		        		console.log(resp.toString());
@@ -238,8 +228,8 @@ app.post('/process_authentication', function(req, res) {
 				'VsitDeveloperId': vsitDeveloperId, 
 				'VsitwavURL': recordingURL,
 				'VsitAccuracy':		   5,
-				'VsitAccuracyPasses':	 2,
-				'VsitAccuracyPassIncrement': 1,
+				'VsitAccuracyPasses':	 4,
+				'VsitAccuracyPassIncrement': 2,
 				'VsitConfidence': 85
 			}
 		};
