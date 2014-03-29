@@ -183,10 +183,11 @@ app.post('/process_enroll', function(req, res) {
 	        console.log("info.Result = " + info.Result)
 	        if (info.Result == "Success") { 
 	        //parse result
+	        		requesthash[callernumber]++;
 	        		var enrollcount = requesthash[callernumber]; 
 			        if (enrollcount > 2) {
 			        	console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
-			        	requesthash[callernumber]++;
+			        	
 
 			        	// we have 3 sucessfull enrollments, therefore, lets thank them and move on
 			        	resp.say("Thank you, recording recieved. You are now enrolled. You can log in.");
