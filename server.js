@@ -175,7 +175,7 @@ app.post('/process_enroll', function(req, res) {
 
 
 	    	
-	    	console.log("enrollcount = " + enrollcount);
+	    	
 
 	        var info = JSON.parse(body);
 	      
@@ -184,8 +184,8 @@ app.post('/process_enroll', function(req, res) {
 	        if (info.Result == "Success") { 
 	        //parse result
 	        		requesthash[callernumber]++;
-	        		var enrollcount = requesthash[callernumber]; 
-			        if (enrollcount > 2) {
+	        		console.log("enrollcount = " + requesthash[callernumber]);
+			        if (requesthash[callernumber] > 2) {
 			        	console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
 			        	
 
