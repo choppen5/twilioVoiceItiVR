@@ -173,22 +173,32 @@ app.post('/process_enroll', function(req, res) {
 		resp = new twilio.TwimlResponse();
 	    if (!error && response.statusCode == 200) {
 
-	    	requesthash[callernumber]++;
+
 	    	var enrollcount = requesthash[callernumber]; 
 	    	console.log("enrollcount = " + enrollcount);
 
 	        var info = JSON.parse(body);
-	        console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
+	      
 	        console.log(info);
-	        if (enrollcount > 2) {
+	        console.log("info.Result = " + info.Result)
+	        if (info.Result == "Success") { 
+	        //parse result
+			        if (enrollcount > 2) {
+			        	console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
+			        	requesthash[callernumber]++;
 
-	        	// we have 3 sucessfull enrollments, therefore, lets thank them and move on
-	        	resp.say("Thank you, recording recieved. You are now enrolled. You can log in.");
-				resp.redirect("/authenticate");
-	        } else {
-	        	resp.say("Thank you, recording recieved. You will now be asked to record your phrase again.");
-				resp.redirect("/enroll");
-	        }
+			        	// we have 3 sucessfull enrollments, therefore, lets thank them and move on
+			        	resp.say("Thank you, recording recieved. You are now enrolled. You can log in.");
+						resp.redirect("/authenticate");
+			        } else {
+			        	resp.say("Thank you, recording recieved. You will now be asked to record your phrase again.");
+						resp.redirect("/enroll");
+			        }
+			 } else {
+			 	resp.say("Sorry, your recording did not stick. Please try again");
+			 	resp.redirect("/enroll");
+
+			 }
 	    } else {
 	    	console.log("terrible error!");
 	    	
@@ -244,6 +254,7 @@ app.post('/process_authentication', function(req, res) {
 	        var info = JSON.parse(body);
 	        console.log("great success authenticting!" + info);
 	        if (info.Result == "Authentication failed.") {
+	        	//not confidence
 	        	resp.say("Your authentication did not pass. Please try again..");
 				resp.redirect("/authenticate");
 	        } else {
