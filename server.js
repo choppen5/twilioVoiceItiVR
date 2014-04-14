@@ -52,13 +52,12 @@ app.post('/incomming_call', function(req, res) {
 
 	requesthash[callernumber] = 0;
 
-	request(getUserOptions, function (error, response, body) {
+	request(getUserOptions, function (error, response, 	body) {
 		    if (!error && response.statusCode == 200) {
 		        var info = JSON.parse(body);
 		        console.log("great success!");
 		        console.log(info);
 
-		        
 		        resp.say("You have called Voice Authentication. Your phone number has been recognized.");
 		        resp.gather({action: "/enroll_or_authenticate", numDigits: "1", timeout: 3}, function () {
 		        	this.say("You can now log in.  Or press 1 now to enroll for the first time.");
@@ -105,7 +104,6 @@ app.post('/enroll_or_authenticate', function(req, res) {
 	digits = req.body.Digits;
 	resp = new twilio.TwimlResponse(); 
 	if (digits == 1) {
-		resp.say("You have choosen to create a new account with your voice.  You will be asked to say a phrase 3 times.  Then you will be able to log in with that phrase.");
 		resp.redirect("/enroll");
 	} else {
 		resp.redirect("/authenticate");
@@ -119,6 +117,7 @@ app.post('/enroll', function(req, res) {
 
 	//check state.. how many times has this guy unrolled?
 	resp = new twilio.TwimlResponse(); 
+	resp.say("You have choosen to create a new account with your voice.  You will be asked to say a phrase 3 times.  Then you will be able to log in with that phrase.");
 	resp.say("Say the following phrase.")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
@@ -131,14 +130,13 @@ app.post('/enroll', function(req, res) {
 
 
 app.post('/authenticate', function(req, res) { 
-
 	resp = new twilio.TwimlResponse(); 
 	resp.say("Please say the following phrase to authenticate. ")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
 	resp.record({action: "/process_authentication", trim: "do-not-trim", maxLength: "5"});
 
-		        //send a twilio response
+	//send a twilio response
 	console.log(resp.toString());
   	res.send(resp.toString());
 
@@ -173,22 +171,15 @@ app.post('/process_enroll', function(req, res) {
 		resp = new twilio.TwimlResponse();
 	    if (!error && response.statusCode == 200) {
 
-
-	    	
-	    	
-
 	        var info = JSON.parse(body);
-	      
 	        console.log(info);
 	        console.log("info.Result = " + info.Result)
 	        if (info.Result == "Success") { 
-	        //parse result
+
+			        console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
 	        		requesthash[callernumber]++;
 	        		console.log("enrollcount = " + requesthash[callernumber]);
 			        if (requesthash[callernumber] > 2) {
-			        	console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
-			        	
-
 			        	// we have 3 sucessfull enrollments, therefore, lets thank them and move on
 			        	resp.say("Thank you, recording recieved. You are now enrolled. You can log in.");
 						resp.redirect("/authenticate");
@@ -242,11 +233,9 @@ app.post('/process_authentication', function(req, res) {
 				'VsitAccuracy':		   5,
 				'VsitAccuracyPasses':	 4,
 				'VsitAccuracyPassIncrement': 2,
-				'VsitConfidence': 85
+				'VsitConfidence': 87
 			}
 		};
-
-
 
 	//fire request to voiceit, check response
 	//based on the voiceit response, say "You have authenticatd! Great!"
