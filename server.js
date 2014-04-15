@@ -1,12 +1,13 @@
 var twilio = require('twilio'),
     express = require('express'),
     request = require('request'),
-    SHA256 = require("crypto-js/sha256");
+    SHA256 = require("crypto-js/sha256"),
+    bodyParser = require('body-parser');
 
 
 var port = process.env.PORT || 8080;
 var app = express();
-app.use(express.bodyParser());  //must have this to parse body of requests
+app.use(bodyParser());  //must have this to parse body of requests
 
 //password
 // need to set environment variables VOICEIT_DEV_ID and VOICEIT_DEV_ID
@@ -233,7 +234,7 @@ app.post('/process_authentication', function(req, res) {
 				'VsitAccuracy':		   5,
 				'VsitAccuracyPasses':	 4,
 				'VsitAccuracyPassIncrement': 2,
-				'VsitConfidence': 87
+				'VsitConfidence': 87	
 			}
 		};
 
