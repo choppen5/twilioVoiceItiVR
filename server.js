@@ -105,6 +105,7 @@ app.post('/enroll_or_authenticate', function(req, res) {
 	digits = req.body.Digits;
 	resp = new twilio.TwimlResponse(); 
 	if (digits == 1) {
+		resp.say("You have choosen to create a new account with your voice.  You will be asked to say a phrase 3 times.  Then you will be able to log in with that phrase.");
 		resp.redirect("/enroll");
 	} else {
 		resp.redirect("/authenticate");
@@ -118,7 +119,6 @@ app.post('/enroll', function(req, res) {
 
 	//check state.. how many times has this guy unrolled?
 	resp = new twilio.TwimlResponse(); 
-	resp.say("You have choosen to create a new account with your voice.  You will be asked to say a phrase 3 times.  Then you will be able to log in with that phrase.");
 	resp.say("Say the following phrase.")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
