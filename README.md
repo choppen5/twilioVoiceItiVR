@@ -21,6 +21,8 @@ npm install
 1. Set the environment variable VOICEIT_PASSWORD, VOICEIT_DEV_ID
 2. node server.js 
 (to run, or deploy to a server)
-3. Point a Twilio Phone number to VoiceURL to your node app from step2 
+3. Point a Twilio Phone number to VoiceURL to your <http://node-app-from-step2/incoming_call
 
 ## Deploy to Heroku
+heroku create
+git push heroku master

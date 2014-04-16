@@ -31,7 +31,7 @@ var requesthash = {};
 
 
 
-app.post('/incomming_call', function(req, res) { 
+app.post('/incoming_call', function(req, res) { 
 
 	//get incoming number, assemble a getUser request
 	var callernumber = req.body.From;
