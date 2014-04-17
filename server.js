@@ -3,31 +3,30 @@ var twilio = require('twilio'),
     request = require('request'),
     SHA256 = require("crypto-js/sha256"),
     bodyParser = require('body-parser');
+    //requestQuery = require('query');
 
 
-var port = process.env.PORT || 8080;
+var port = process.env.PORT || 1337;
 var app = express();
 app.use(bodyParser());  //must have this to parse body of requests
+//app.use(requestQuery());
 
-//password
 // need to set environment variables VOICEIT_DEV_ID and VOICEIT_DEV_ID
 console.log("password = " + process.env.VOICEIT_PASSWORD + " vstDev id= " +  process.env.VOICEIT_DEV_ID);
 
+//update password
+//var voiceitPassword = SHA256(process.env.VOICEIT_PASSWORD);
+var voiceitDeveloperId = process.env.VOICEIT_DEV_ID; 
 
-
-var password = SHA256(process.env.VOICEIT_PASSWORD);
-var vsitDeveloperId = process.env.VOICEIT_DEV_ID; 
-var sivurl = "https://siv.voiceprintportal.com/sivservice/api/users";
-var requesthash = {};
 
 //This app has a few main areas:
-// 1. /incomming_call - Twilio will send calls here 
+// 1. /incoming_call - Twilio will send calls here 
 // 2. a request to voiceprintportal.com will be called, to determine if this phone number exits
 // 3. If not, create user
-// 4. If it is a new user, take the user the the /enroll function
+// 4. If it is a new user, goto the /enroll function
 // 5. Enrollment requires at least 3 sucessfull recordings of a voice phrase 
 // 6. The /authenticate method asks the user who is already enrolled to use their phrase
-// 7. Currently, if the user is actually authenticated, all the app does is play   	
+// 7. Currently, if the user is actually authenticated, all the app does is play a demo message  	
 
 
 
@@ -35,29 +34,34 @@ app.post('/incoming_call', function(req, res) {
 
 	//get incoming number, assemble a getUser request
 	var callernumber = req.body.From;
-	var visitEmail =  callernumber + "@twiliobioauth.com";
-	console.log("visitEmail = " + visitEmail);
-	var visitPassword = SHA256(callernumber);
+
+	//voiceauth requires an email address, so we will make a fake one for this caller
+	var voiceitEmail =  callernumber + "@twiliobioauth.example.com";  
+
+	console.log("visitEmail = " + voiceitEmail);
+	var voiceitPassword = SHA256(callernumber);
+
+
+
+	var getUserOptions = {
+	    url: 'https://siv.voiceprintportal.com/sivservice/api/users',
+		headers: {
+		    	'VsitEmail' : voiceitEmail,
+		    	'VsitPassword' : voiceitPassword,
+		    	'VsitDeveloperId' : voiceitDeveloperId
+			}
+	};
+
+
+
 
 	//prepare a a Twilio response
 	var resp = new twilio.TwimlResponse();
 
-	var getUserOptions = {
-    url: 'https://siv.voiceprintportal.com/sivservice/api/users',
-	headers: {
-	    	'VsitEmail' : visitEmail,
-	    	'VsitPassword' : visitPassword,
-	    	'VsitDeveloperId' : vsitDeveloperId
-		}
-	};
-
-	requesthash[callernumber] = 0;
-
+	//check for the user, if they don't exist we get error 412 and will create a new user
 	request(getUserOptions, function (error, response, 	body) {
 		    if (!error && response.statusCode == 200) {
 		        var info = JSON.parse(body);
-		        console.log("great success!");
-		        console.log(info);
 
 		        resp.say("You have called Voice Authentication. Your phone number has been recognized.");
 		        resp.gather({action: "/enroll_or_authenticate", numDigits: "1", timeout: 3}, function () {
@@ -69,19 +73,17 @@ app.post('/incoming_call', function(req, res) {
   	  			res.send(resp.toString());
 
 		    } else {
-		    	console.log("terrible error!");
 		    	console.log(response.statusCode);
-		    	console.log(body);
-		    	//412 is "User not Found" - should check for a body { "Result" : "User not found" }
+		    	//412 = precodition failed.  In this case, "User not Found" - should check for a body { "Result" : "User not found" }
 		    	if (response.statusCode == '412') {
 
-						// create user
+						// now create user
 						var createUserOptions = {
 					    url: 'https://siv.voiceprintportal.com/sivservice/api/users',
 						headers: {
-								'VsitEmail': visitEmail, 
-								'VsitPassword': visitPassword,
-								'VsitDeveloperId': vsitDeveloperId, 
+								'VsitEmail': voiceitEmail, 
+								'VsitPassword': voiceitPassword,
+								'VsitDeveloperId': voiceitDeveloperId, 
 								'VsitFirstName': "First" + callernumber, 
 								'VsitLastName': "Last" + callernumber, 
 								'VsitPhone1': callernumber
@@ -117,12 +119,14 @@ app.post('/enroll_or_authenticate', function(req, res) {
 
 app.post('/enroll', function(req, res) { 
 
+	var enrollcount = req.query.enrollCount || 0;
+
 	//check state.. how many times has this guy unrolled?
 	resp = new twilio.TwimlResponse(); 
 	resp.say("Say the following phrase.")
 	resp.pause("1");
 	resp.say("Never forget that tomorrow is a new day");
-	resp.record({action: "/process_enroll", trim: "do-not-trim", maxLength: "5"});
+	resp.record({action: "/process_enroll?enrollCount=" + enrollcount, trim: "do-not-trim", maxLength: "5"});
 	
 	console.log(resp.toString());
 	res.send(resp.toString());
@@ -146,12 +150,13 @@ app.post('/authenticate', function(req, res) {
 app.post('/process_enroll', function(req, res) { 
 
 	var callernumber = req.body.From;
+	var enrollcount = req.query.enrollCount;
 	console.dir(req.body);
 
 	var recordingURL = req.body.RecordingUrl + ".wav";
 	console.log("recording url = " + recordingURL);
 	
-	var visitEmail =  callernumber + "@twiliobioauth.com";
+	var visitEmail =  callernumber + "@twiliobioauth.example.com";
 	console.log("visitEmail = " + visitEmail);
 	var visitPassword = SHA256(callernumber);
 
@@ -160,7 +165,7 @@ app.post('/process_enroll', function(req, res) {
 	headers: {
 			'VsitEmail': visitEmail, 
 			'VsitPassword': visitPassword,
-			'VsitDeveloperId': vsitDeveloperId, 
+			'VsitDeveloperId': voiceitDeveloperId, 
 			'VsitwavURL'		 : recordingURL
 		}
 	};
@@ -178,26 +183,26 @@ app.post('/process_enroll', function(req, res) {
 	        if (info.Result == "Success") { 
 
 			        console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
-	        		requesthash[callernumber]++;
-	        		console.log("enrollcount = " + requesthash[callernumber]);
-			        if (requesthash[callernumber] > 2) {
+	        		enrollcount++;
+	        		console.log("enrollcount = " + enrollcount);
+			        if (enrollcount > 2) {
 			        	// we have 3 sucessfull enrollments, therefore, lets thank them and move on
 			        	resp.say("Thank you, recording recieved. You are now enrolled. You can log in.");
 						resp.redirect("/authenticate");
 			        } else {
 			        	resp.say("Thank you, recording recieved. You will now be asked to record your phrase again.");
-						resp.redirect("/enroll");
+						resp.redirect("/enroll?enrollCount=" + enrollcount);
 			        }
 			 } else {
 			 	resp.say("Sorry, your recording did not stick. Please try again");
-			 	resp.redirect("/enroll");
+			 	resp.redirect("/enroll?enrollCount=" + enrollcount);
 
 			 }
 	    } else {
 	    	console.log("terrible error!");
 	    	
 	    	resp.say("Sorry, your recording did not stick. Please try again");
-			resp.redirect("/enroll");
+			resp.redirect("/enroll?enrollCount=" + enrollcount);
 
 	    	console.log(response.statusCode);
 	    	console.log(body);
@@ -213,7 +218,7 @@ app.post('/process_enroll', function(req, res) {
 app.post('/process_authentication', function(req, res) { 
 
 	var callernumber = req.body.From;
-	var visitEmail =  callernumber + "@twiliobioauth.com";
+	var visitEmail =  callernumber + "@twiliobioauth.example.com";
 	console.log("visitEmail = " + visitEmail);
 	var visitPassword = SHA256(callernumber);
 
@@ -229,7 +234,7 @@ app.post('/process_authentication', function(req, res) {
 		headers: {
 				'VsitEmail': visitEmail, 
 				'VsitPassword': visitPassword,
-				'VsitDeveloperId': vsitDeveloperId, 
+				'VsitDeveloperId': voiceitDeveloperId, 
 				'VsitwavURL': recordingURL,
 				'VsitAccuracy':		   5,
 				'VsitAccuracyPasses':	 4,
