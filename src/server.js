@@ -5,7 +5,6 @@ var twilio = require('twilio'),
     bodyParser = require('body-parser');
     //requestQuery = require('query');
 
-
 var port = process.env.PORT || 1337;
 var app = express();
 app.use(bodyParser());  //must have this to parse body of requests
