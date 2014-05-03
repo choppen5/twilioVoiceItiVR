@@ -1,23 +1,5 @@
-var twilio = require('twilio'),
-    express = require('express'),
-    request = require('request'),
-    SHA256 = require("crypto-js/sha256"),
-    bodyParser = require('body-parser');
-    //requestQuery = require('query');
-
-var port = process.env.PORT || 1337;
-var app = express();
-app.use(bodyParser());  //must have this to parse body of requests
-//app.use(requestQuery());
-
-// need to set environment variables VOICEIT_DEV_ID and VOICEIT_DEV_ID
-console.log("password = " + process.env.VOICEIT_PASSWORD + " vstDev id= " +  process.env.VOICEIT_DEV_ID);
-
-//update password
-//var voiceitPassword = SHA256(process.env.VOICEIT_PASSWORD);
-var voiceitDeveloperId = process.env.VOICEIT_DEV_ID;
-
-//This app has a few main areas:
+// # Twilio & VoiceIt Demo 
+// :
 // 1. /incoming_call - Twilio will send calls here
 // 2. a request to voiceprintportal.com will be called, to determine if this phone number exits
 // 3. If not, create user
@@ -26,234 +8,262 @@ var voiceitDeveloperId = process.env.VOICEIT_DEV_ID;
 // 6. The /authenticate method asks the user who is already enrolled to use their phrase
 // 7. Currently, if the user is actually authenticated, all the app does is play a demo message
 
+
+// Standard Operating Procedure 
+// -------------------------------
+
+var twilio     = require('twilio'),
+    SHA256     = require('crypto-js/sha256'),
+    bodyParser = require('body-parser'),
+    express    = require('express'),
+    request    = require('request');
+
+// Prepare the Express server and body parsing middleware.
+var port = process.env.PORT || 1337;
+var app = express();
+app.use(bodyParser());
+
+var VOICEIT_DEV_ID = process.env.VOICEIT_DEV_ID;
+
+// ### User Helper
+// VoiceIt authentication requires an email address, so we will make a fake
+// one for this caller using the response body posted from Twilio.
+var callerCredentials = function(body) {
+  var caller = {};
+  caller.number   = body.From;
+  caller.email    = caller.number + '@twiliobioauth.example.com';
+  caller.password = SHA256(caller.number);
+  return caller;
+};
+
+// Accept Incoming Calls
+// ---------------------
+// We need to accept incoming calls from Twilio. The fully-qualified URL should
+// be added to your Twilio account and publicly available.
 app.post('/incoming_call', function(req, res) {
-  //get incoming number, assemble a getUser request
-  var callernumber = req.body.From;
-
-  //voiceauth requires an email address, so we will make a fake one for this caller
-  var voiceitEmail =  callernumber + "@twiliobioauth.example.com";
-
-  console.log("visitEmail = " + voiceitEmail);
-  var voiceitPassword = SHA256(callernumber);
-
-  var getUserOptions = {
+  var caller  = callerCredentials(req.body);
+  var twiml   = new twilio.TwimlResponse();
+  // Prepare options for the VoiceIt `GET /sivservice/api/users` API request.
+  var options = {
     url: 'https://siv.voiceprintportal.com/sivservice/api/users',
     headers: {
-      'VsitEmail' : voiceitEmail,
-      'VsitPassword' : voiceitPassword,
-      'VsitDeveloperId' : voiceitDeveloperId
+      'VsitEmail'       : caller.email,
+      'VsitPassword'    : caller.password,
+      'VsitDeveloperId' : VOICEIT_DEV_ID
     }
   };
 
-  // Prepare a a Twilio response
-  var resp = new twilio.TwimlResponse();
-
-  //check for the user, if they don't exist we get error 412 and will create a new user
-  request(getUserOptions, function (error, response,  body) {
+  request(options, function (error, response,  body) {
+    // When VoiceIt responds with at `200`, we know the user's account profile
+    // exists in the VoiceIt system.
     if (!error && response.statusCode == 200) {
-      var info = JSON.parse(body);
+      var voiceIt = JSON.parse(body);
 
-      resp.say("You have called Voice Authentication. Your phone number has been recognized.");
-      resp.gather({action: "/enroll_or_authenticate", numDigits: "1", timeout: 3}, function () {
-        this.say("You can now log in.  Or press 1 now to enroll for the first time.");
+      // Greet the caller when their account profile is recognized by the VoiceIt API.
+      twiml.say(
+        'You have called Voice Authentication. Your phone number has been recognized.'
+      );
+      // Let's provide the caller with an opportunity to enroll by typing `1` on
+      // their phone's keypad.
+      twiml.gather({
+        action    : '/enroll_or_authenticate',
+        numDigits : 1,
+        timeout   : 3
+      }, function () {
+        this.say(
+          'You can now log in, or press 1 now to enroll for the first time.'
+        );
       });
+      twiml.redirect('/enroll_or_authenticate?digits=TIMEOUT');
 
-      resp.redirect("/enroll_or_authenticate?Digits=TIMEOUT");
-
-      console.log(resp.toString());
-      res.send(resp.toString());
-
+      res.send(twiml.toString());
     } else {
-      console.log(response.statusCode);
-      //412 = precodition failed.  In this case, "User not Found" - should check for a body { "Result" : "User not found" }
-      if (response.statusCode == '412') {
-        // now create user
-        var createUserOptions = {
-          url: 'https://siv.voiceprintportal.com/sivservice/api/users',
-          headers: {
-            'VsitDeveloperId': voiceitDeveloperId,
-            'VsitEmail': voiceitEmail,
-            'VsitFirstName': "First" + callernumber,
-            'VsitLastName': "Last" + callernumber,
-            'VsitPassword': voiceitPassword,
-            'VsitPhone1': callernumber
-          }
-        };
-        console.dir(createUserOptions);
-        console.log("Creating a createUser request");
-        request.post(createUserOptions, callback); //not currently checking results of createUserOptions
-        // if we have successully created a user, we should... <play> "we are enrolling you in the system, with an action URL = enrollment"
-        resp.say("Welcome to the Voice Authentication system.  You are a new user, you will now be enrolled");
-        resp.redirect({Digits: "1"}, "/enroll");
-        console.log(resp.toString());
-        res.send(resp.toString());
-      } //end if status repson code
-    } // end else
-  });  // end initial request
-});// end post
+      switch(response.statusCode) {
+        // Create a VoiceIt user when the HTTP status is `412 Precondition Failed`.
+        case 412:
+          // Prepare options for the VoiceIt `POST /sivservice/api/users` API request.
+          var options = {
+            url: 'https://siv.voiceprintportal.com/sivservice/api/users',
+            headers: {
+              'VsitDeveloperId' : VOICEIT_DEV_ID,
+              'VsitEmail'       : caller.email,
+              'VsitFirstName'   : 'First' + caller.number,
+              'VsitLastName'    : 'Last' + caller.number,
+              'VsitPassword'    : caller.password,
+              'VsitPhone1'      : caller.number
+            }
+          };
+          request.post(options, function (error, response,  body) {
+            if (!error && response.statusCode == 200) {
+              var voiceIt = JSON.parse(body);
+              console.log(voiceIt);
+            } else {
+              console.log(response.statusCode);
+              console.log(body);
+            }
+          });
 
+          twiml.say(
+            'Welcome to the Voice Authentication system. You are a new user, ' +
+            'you will now be enrolled.'
+          );
+          // Then we'll want to send them immediately to enrollment.
+          twiml.redirect({ digits: '1' }, '/enroll');
+
+          res.send(twiml.toString());
+          break;
+        default:
+          new Error('An unhandled error occured');
+      }
+    }
+  });
+});
+
+// Some title
+// ----------
+// We need a route to help determine what the caller intends to do.
 app.post('/enroll_or_authenticate', function(req, res) {
-  digits = req.body.Digits;
-  resp = new twilio.TwimlResponse();
+  var digits = req.body.digits;
+  var twiml  = new twilio.TwimlResponse();
+
+  // When the caller asked to enroll by pressing `1`, provide friendly
+  // instructions, otherwise, we always assume their intent is to authenticate.
   if (digits == 1) {
-    resp.say("You have choosen to create a new account with your voice.  You will be asked to say a phrase 3 times.  Then you will be able to log in with that phrase.");
-    resp.redirect("/enroll");
+    twiml.say(
+      'You have chosen to create a new account with your voice. You will be ' +
+      'asked to say a phrase 3 times, then you will be able to log in with that phrase.'
+    );
+    twiml.redirect('/enroll');
   } else {
-    resp.redirect("/authenticate");
+    twiml.redirect('/authenticate');
   }
-  console.log(resp.toString());
-  res.send(resp.toString());
+
+  res.send(twiml.toString());
 });
 
 app.post('/enroll', function(req, res) {
-  var enrollcount = req.query.enrollCount || 0;
+  var enrollCount = req.query.enrollCount || 0;
+  var twiml       = new twilio.TwimlResponse();
 
-  //check state.. how many times has this guy unrolled?
-  resp = new twilio.TwimlResponse();
-  resp.say("Say the following phrase.");
-  resp.pause("1");
-  resp.say("Never forget that tomorrow is a new day");
-  resp.record({action: "/process_enroll?enrollCount=" + enrollcount, trim: "do-not-trim", maxLength: "5"});
+  twiml.say('Please say the following phrase to enroll.');
+  twiml.pause(1);
+  twiml.say('Never forget tomorrow is a new day.');
+  twiml.record({
+    action    : '/process_enrollment?enrollCount=' + enrollCount,
+    maxLength : 5,
+    trim      : 'do-not-trim'
+  });
 
-  console.log(resp.toString());
-  res.send(resp.toString());
+  res.send(twiml.toString());
 });
 
 app.post('/authenticate', function(req, res) {
-  resp = new twilio.TwimlResponse();
-  resp.say("Please say the following phrase to authenticate. ");
-  resp.pause("1");
-  resp.say("Never forget that tomorrow is a new day");
-  resp.record({action: "/process_authentication", trim: "do-not-trim", maxLength: "5"});
+  var twiml = new twilio.TwimlResponse();
 
-  //send a twilio response
-  console.log(resp.toString());
-  res.send(resp.toString());
+  twiml.say('Please say the following phrase to authenticate.');
+  twiml.pause(1);
+  twiml.say('Never forget tomorrow is a new day.');
+  // We neeed to record a `.wav` file. This will be sent to VoiceIt for authentication.
+  twiml.record({
+    action    : '/process_authentication',
+    maxLength : '5',
+    trim      : 'do-not-trim',
+  });
+
+  res.send(twiml.toString());
 });
 
-app.post('/process_enroll', function(req, res) {
-  var callernumber = req.body.From;
-  var enrollcount = req.query.enrollCount;
-  console.dir(req.body);
-
+app.post('/process_enrollment', function(req, res) {
+  var caller       = callerCredentials(req.body);
+  var enrollCount  = req.query.enrollCount;
   var recordingURL = req.body.RecordingUrl + ".wav";
-  console.log("recording url = " + recordingURL);
-
-  var visitEmail =  callernumber + "@twiliobioauth.example.com";
-  console.log("visitEmail = " + visitEmail);
-  var visitPassword = SHA256(callernumber);
-
-  var enrollByWav = {
+  // Prepare options for the VoiceIt `POST /sivservice/api/enrollments/bywavurl API request.
+  var options      = {
     url: 'https://siv.voiceprintportal.com/sivservice/api/enrollments/bywavurl',
     headers: {
-      'VsitEmail': visitEmail,
-      'VsitPassword': visitPassword,
-      'VsitDeveloperId': voiceitDeveloperId,
-      'VsitwavURL': recordingURL
+      'VsitDeveloperId' : VOICEIT_DEV_ID,
+      'VsitEmail'       : caller.email,
+      'VsitPassword'    : caller.password,
+      'VsitwavURL'      : recordingURL
     }
   };
 
-  //fire request to voiceit, check response
-  //based on the voiceit response, say "You have authenticatd! Great!"
-  request.post(enrollByWav, function (error, response, body) {
-    resp = new twilio.TwimlResponse();
+  request.post(options, function (error, response, body) {
+    var twiml = new twilio.TwimlResponse();
+
     if (!error && response.statusCode == 200) {
-      var info = JSON.parse(body);
-      console.log(info);
-      console.log("info.Result = " + info.Result);
-      if (info.Result == "Success") {
-        console.log("great success in enrolling via IVR... lets check how many times we've enrolled!");
-        enrollcount++;
-        console.log("enrollcount = " + enrollcount);
-        if (enrollcount > 2) {
-          // we have 3 sucessfull enrollments, therefore, lets thank them and move on
-          resp.say("Thank you, recording recieved. You are now enrolled. You can log in.");
-          resp.redirect("/authenticate");
+      var voiceIt = JSON.parse(body);
+
+      if (voiceIt.Result == 'Success') {
+        enrollCount++;
+        // VoiceIt requires at least 3 successful enrollments.
+        if (enrollCount > 2) {
+          twiml.say(
+            'Thank you, recording recieved. You are now enrolled. You can log in.'
+          );
+          twiml.redirect('/authenticate');
         } else {
-          resp.say("Thank you, recording recieved. You will now be asked to record your phrase again.");
-          resp.redirect("/enroll?enrollCount=" + enrollcount);
+          twiml.say(
+            'Thank you, recording recieved. You will now be asked to record your phrase again.'
+          );
+          twiml.redirect('/enroll?enrollCount=' + enrollCount);
         }
       } else {
-        resp.say("Sorry, your recording did not stick. Please try again");
-        resp.redirect("/enroll?enrollCount=" + enrollcount);
+        twiml.say('Sorry, your recording did not stick. Please try again.');
+        twiml.redirect('/enroll?enrollCount=' + enrollCount);
       }
     } else {
-      console.log("terrible error!");
-      resp.say("Sorry, your recording did not stick. Please try again");
-      resp.redirect("/enroll?enrollCount=" + enrollcount);
-      console.log(response.statusCode);
-      console.log(body);
-      //what to do here..
+      twiml.say('Sorry, your recording did not stick. Please try again');
+      twiml.redirect('/enroll?enrollCount=' + enrollCount);
     }
-    console.log(resp.toString());
-    res.send(resp.toString());
+
+    res.send(twiml.toString());
   });
 });
 
 app.post('/process_authentication', function(req, res) {
-  var callernumber = req.body.From;
-  var visitEmail =  callernumber + "@twiliobioauth.example.com";
-  console.log("visitEmail = " + visitEmail);
-  var visitPassword = SHA256(callernumber);
-  var recordingURL = req.body.RecordingUrl + ".wav";
-  console.log("recording url = " + recordingURL);
-  console.dir(req.body);
-
-  var authenticateByWav = {
+  var caller       = callerCredentials(req.body);
+  var recordingURL = req.body.RecordingUrl + '.wav';
+  var options      = {
     url: 'https://siv.voiceprintportal.com/sivservice/api/authentications/bywavurl',
     headers: {
-      'VsitEmail': visitEmail,
-      'VsitPassword': visitPassword,
-      'VsitDeveloperId': voiceitDeveloperId,
-      'VsitwavURL': recordingURL,
-      'VsitAccuracy': 5,
-      'VsitAccuracyPasses': 4,
-      'VsitAccuracyPassIncrement': 2,
-      'VsitConfidence': 87
+      'VsitAccuracy'              : 5,
+      'VsitAccuracyPassIncrement' : 2,
+      'VsitAccuracyPasses'        : 4,
+      'VsitConfidence'            : 87,
+      'VsitDeveloperId'           : VOICEIT_DEV_ID,
+      'VsitEmail'                 : caller.email,
+      'VsitPassword'              : caller.password,
+      'VsitwavURL'                : recordingURL
     }
   };
 
-  //fire request to voiceit, check response
-  //based on the voiceit response, say "You have authenticatd! Great!"
-  request.post(authenticateByWav, function (error, response, body) {
-    resp = new twilio.TwimlResponse();
+  request.post(options, function(error, response, body) {
+    var twiml = new twilio.TwimlResponse();
+
     if (!error && response.statusCode == 200) {
-      var info = JSON.parse(body);
-      console.log("great success authenticting!" + info);
-      if (info.Result == "Authentication failed.") {
-        //not confidence
-        resp.say("Your authentication did not pass. Please try again..");
-        resp.redirect("/authenticate");
-      } else {
-        resp.say("Great Success!  I'm a lowly robot, and I recognized your voice. Thank you, you are now authenticated.   This is the end of the demo.");
+      var voiceIt = JSON.parse(body);
+      console.log(voiceIt);
+
+      switch(voiceIt.Result) {
+        case 'Authentication failed.':
+          twiml.say('Your authentication did not pass. Please try again.');
+          twiml.redirect('/authenticate');
+          break;
+        default:
+          twiml.say(voiceIt.Result);
       }
-      //parse the body.result..
-      console.log(info);
-      // we have 3 sucessfull enrollments, therefore, lets thank them and move o
     } else {
-      resp.say("API Error.  Your authentication did not pass. Please try again..");
-      resp.redirect("/authenticate");
-      console.log(response.statusCode);
-      console.log(body);
-      //what to do here..
+      twiml.say('API Error. Your authentication did not pass. Please try again.');
+      twiml.redirect('/authenticate');
+
+      new Error(response.statusCode, body);
     }
-    console.log(resp.toString());
-    res.send(resp.toString());
+
+    res.send(twiml.toString());
   });
 });
 
-function callback(error, response, body) {
-  if (!error && response.statusCode == 200) {
-    var info = JSON.parse(body);
-    console.log("great success!");
-    console.log(info);
-  } else {
-    console.log("terrible error!");
-    console.log(response.statusCode);
-    console.log(body);
-  }
-  return response.statusCode;
-}
 
 app.listen(port);
-console.log('Up and running for bioauthentication on port ' + port);
+console.log('Running bioauthentication on port ' + port);
