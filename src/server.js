@@ -1,13 +1,8 @@
 // # Twilio & VoiceIt Demo 
-// :
-// 1. /incoming_call - Twilio will send calls here
-// 2. a request to voiceprintportal.com will be called, to determine if this phone number exits
-// 3. If not, create user
-// 4. If it is a new user, goto the /enroll function
-// 5. Enrollment requires at least 3 sucessfull recordings of a voice phrase
-// 6. The /authenticate method asks the user who is already enrolled to use their phrase
-// 7. Currently, if the user is actually authenticated, all the app does is play a demo message
 
+// This application demonstrates how Twilio integrates with the VoiceIt 
+// Voiceprint Portal, allowing for biometric authentication with your voice
+// applications.
 
 // Standard Operating Procedure 
 // -------------------------------
@@ -25,7 +20,8 @@ app.use(bodyParser());
 
 var VOICEIT_DEV_ID = process.env.VOICEIT_DEV_ID;
 
-// ### User Helper
+// Stubbing VoiceIt Profiles with Phone Numbers 
+// --------------------------------------------
 // VoiceIt authentication requires an email address, so we will make a fake
 // one for this caller using the response body posted from Twilio.
 var callerCredentials = function(body) {
