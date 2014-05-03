@@ -1,10 +1,10 @@
-// # Twilio & VoiceIt Demo 
+// # Twilio & VoiceIt Demo
 
-// This application demonstrates how Twilio integrates with the VoiceIt 
+// This application demonstrates how Twilio integrates with the VoiceIt
 // Voiceprint Portal, allowing for biometric authentication with your voice
 // applications.
 
-// Standard Operating Procedure 
+// Standard Operating Procedure
 // -------------------------------
 
 var twilio     = require('twilio'),
@@ -20,16 +20,19 @@ app.use(bodyParser());
 
 var VOICEIT_DEV_ID = process.env.VOICEIT_DEV_ID;
 
-// Stubbing VoiceIt Profiles with Phone Numbers 
+// Stubbing VoiceIt Profiles with Phone Numbers
 // --------------------------------------------
 // VoiceIt authentication requires an email address, so we will make a fake
 // one for this caller using the response body posted from Twilio.
 var callerCredentials = function(body) {
-  var caller = {};
-  caller.number   = body.From;
-  caller.email    = caller.number + '@twiliobioauth.example.com';
-  caller.password = SHA256(caller.number);
-  return caller;
+   // Twilio's `body.From` is the caller's phone number, so let's use it as
+   // identifier in the VoiceIt profile. It also means, the authentication is
+   // bound only to this phone number.
+   return  {
+     number   : body.From,
+     email    : body.From + '@twiliobioauth.example.com',
+     password : SHA256(body.From)
+   };
 };
 
 // Accept Incoming Calls
@@ -89,6 +92,7 @@ app.post('/incoming_call', function(req, res) {
               'VsitPhone1'      : caller.number
             }
           };
+
           request.post(options, function (error, response,  body) {
             if (!error && response.statusCode == 200) {
               var voiceIt = JSON.parse(body);
@@ -137,6 +141,8 @@ app.post('/enroll_or_authenticate', function(req, res) {
   res.send(twiml.toString());
 });
 
+// Enrollments
+// -----------
 app.post('/enroll', function(req, res) {
   var enrollCount = req.query.enrollCount || 0;
   var twiml       = new twilio.TwimlResponse();
@@ -259,7 +265,6 @@ app.post('/process_authentication', function(req, res) {
     res.send(twiml.toString());
   });
 });
-
 
 app.listen(port);
 console.log('Running bioauthentication on port ' + port);
