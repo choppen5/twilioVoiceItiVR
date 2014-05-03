@@ -115,8 +115,8 @@ app.post('/incoming_call', function(req, res) {
   });
 });
 
-// Some title
-// ----------
+// Routing Enrollments & Authentication
+// ------------------------------------
 // We need a route to help determine what the caller intends to do.
 app.post('/enroll_or_authenticate', function(req, res) {
   var digits = req.body.digits;
