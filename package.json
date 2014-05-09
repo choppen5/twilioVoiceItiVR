@@ -1,13 +1,24 @@
 {
-	"name" :  "voice_bioauthentication_ivr",
-	"description" : "Using the VoiceIT API with Twilio",
-	"author" : "Charles Oppenheimer <charles@twilio.com",
-"dependencies": {
-        "twilio": "latest",
-        "express": "latest",
-        "ejs"  :  "latest",
-        "request" : "latest",
-        "crypto-js" : "latest",
-        "body-parser" : "latest"
-    }
+  "name": "voice_bioauthentication_ivr",
+  "description": "Using the VoiceIT API with Twilio",
+  "author": "Charles Oppenheimer <charles@twilio.com",
+  "engines": {
+    "node": "0.10.28"
+  },
+  "dependencies": {
+    "twilio": "latest",
+    "express": "latest",
+    "ejs": "latest",
+    "request": "latest",
+    "crypto-js": "latest",
+    "body-parser": "latest"
+  },
+  "devDependencies": {
+    "gulp": "~3.6.2",
+    "gulp-rename": "~1.2.0",
+    "gulp-concat": "~2.2.0",
+    "gulp-uglify": "~0.2.1",
+    "gulp-jshint": "~1.5.5",
+    "gulp-docco": "0.0.4"
   }
+}
