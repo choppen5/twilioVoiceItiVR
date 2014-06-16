@@ -232,7 +232,7 @@ app.post('/process_authentication', function(req, res) {
       'VsitAccuracy'              : 5,
       'VsitAccuracyPassIncrement' : 2,
       'VsitAccuracyPasses'        : 4,
-      'VsitConfidence'            : 87,
+      'VsitConfidence'            : 89,
       'VsitDeveloperId'           : VOICEIT_DEV_ID,
       'VsitEmail'                 : caller.email,
       'VsitPassword'              : caller.password,
