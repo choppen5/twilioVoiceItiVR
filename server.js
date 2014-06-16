@@ -239,7 +239,7 @@ app.post('/process_authentication', function(req, res) {
 				'VsitAccuracy':		   5,
 				'VsitAccuracyPasses':	 4,
 				'VsitAccuracyPassIncrement': 2,
-				'VsitConfidence': 87	
+				'VsitConfidence': 89	
 			}
 		};
 
