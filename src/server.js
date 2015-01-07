@@ -123,7 +123,8 @@ app.post('/incoming_call', function(req, res) {
 // ------------------------------------
 // We need a route to help determine what the caller intends to do.
 app.post('/enroll_or_authenticate', function(req, res) {
-  var digits = req.body.digits;
+  var digits = req.body.Digits;
+  console.log("recieved digits = " + digits);
   var twiml  = new twilio.TwimlResponse();
 
   // When the caller asked to enroll by pressing `1`, provide friendly
