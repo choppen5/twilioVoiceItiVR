@@ -108,7 +108,7 @@ app.post('/incoming_call', function(req, res) {
             'you will now be enrolled.'
           );
           // Then we'll want to send them immediately to enrollment.
-          twiml.redirect({ digits: '1' }, '/enroll');
+          twiml.redirect('/enroll');
 
           res.send(twiml.toString());
           break;
